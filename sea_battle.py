@@ -1,3 +1,6 @@
+from random import randint
+
+
 # Класс координат
 class Dot:
     def __init__(self, x, y):
@@ -100,3 +103,71 @@ class Board:
             self.busy.append(d)
         self.ships.append(ship)  # добавляем список собственных кораблей
         self.contour(ship)  # обводим по контуру
+
+    def shot(self, d):  # стрельба по доске
+        if self.out(d):  # выбрасываю исключение, точка за границей
+            raise BoardOutException()
+        if d in self.busy:  # выбрасываю исключение, точка занята
+            raise BoardUsedException()
+        self.busy.append(d)
+        for ship in self.ships:
+            if ship.shooten(d):
+                ship.lives -= 1
+                self.field[d.x][d.y] = "x"  # корабль подбит
+                if ship.lives == 0:
+                    self.count += 1  # счётчик уничтоженных кораблей
+                    self.contour(ship, verb=True)
+                    print("Корабль уничтожен")
+                    return False
+                else:
+                    print("Корабль подбит")
+                    return True
+        self.field[d.x][d.y] = "."
+        print("Мимо")
+        return False
+
+    def begin(self):
+        self.busy = []
+
+
+# Класс игрока
+class Player:
+    def __int__(self, board, enemy):
+        self.board = board
+        self.enemy = enemy
+
+    def ask(self):
+        raise NotImplementedError()
+
+    def move(self):
+        while True:
+            try:  # пытаемся выполнить выстрел
+                target = self.ask()
+                repeat = self.enemy.shot(target)
+                return repeat
+            except BoardException as e:
+                print(e)
+
+
+# Класс игрок компьютер
+class AI(Player):
+    def ask(self):
+        d = Dot(randint(0, 5), randint(0, 5))
+        print(f"Ход компьютера: {d.x+1}{d.y+1}")
+        return d
+
+
+# Класс игрок пользователь
+class User(Player):
+    def ask(self):
+        while True:
+            cords = input("Ваш ход: ").split()
+            if len(cords) != 2:
+                print("Введите две координаты")
+                continue
+            x, y = cords
+            if not(x.isdigit()) or not (y.isdigity()):
+                print("Введите числа")
+                continue
+            x, y = int(x), int(y)
+            return Dot(x-1, y-1)
